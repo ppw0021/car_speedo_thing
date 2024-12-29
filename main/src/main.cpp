@@ -1,55 +1,23 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <SoftwareSerial.h>
 #include <TinyGPS.h>
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#include <LiquidCrystal_I2C.h>
 
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-// The pins for I2C are defined by the Wire-library.
-// On an arduino UNO:       A4(SDA), A5(SCL)
-// On an arduino MEGA 2560: 20(SDA), 21(SCL)
-// On an arduino LEONARDO:   2(SDA),  3(SCL), ...
-#define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-#define LOGO_HEIGHT 16
-#define LOGO_WIDTH 16
-
-// GPS
 TinyGPS gps;
 SoftwareSerial ss(9, 8);
+
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
 
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  
 
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
-  {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;)
-      ; // Don't proceed, loop forever
-  }
-
-  display.clearDisplay();
-  display.display(); // Default buffer contains splash screen logo
-  delay(100);       // Pause for 2 seconds
-
-  // Clear the buffer
-  display.clearDisplay();
-
-  display.setTextSize(1.5); // Draw 2X-scale text
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println(F("Working"));
-
-  display.display();
-
+  lcd.init();
+  lcd.backlight();
   // Setup GPS
   ss.begin(9600);
 }
@@ -87,12 +55,15 @@ void loop()
     Serial.print(" PREC=");
     Serial.print(gps.hdop() == TinyGPS::GPS_INVALID_HDOP ? 0 : gps.hdop());
     Serial.println();
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print("Speed: ");
-    display.print(speed);
-    display.print(" KPH");
-    display.display();
+    lcd.setCursor(0,0);
+    lcd.print("Speed: ");
+    int rounded_speed = round(speed);
+    if (rounded_speed < 2)
+    {
+      rounded_speed = 0;
+    }
+    lcd.print(rounded_speed);
+    lcd.print(" KPH");
   }
 
   gps.stats(&chars, &sentences, &failed);
